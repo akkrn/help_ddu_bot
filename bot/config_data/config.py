@@ -4,15 +4,15 @@ from environs import Env
 
 @dataclass
 class DatabaseConfig:
-    database: str
-    db_host: str
-    db_user: str
-    db_password: str
+    DATABASE: str
+    DB_HOST: str
+    DB_USER: str
+    DB_password: str
 
 
 @dataclass
 class TgBot:
-    token: str
+    BOT_TOKEN: str
 
 
 @dataclass
@@ -22,12 +22,15 @@ class Config:
 
 
 def load_config(path: str | None) -> Config:
-
     env: Env = Env()
     env.read_env(path)
 
-    return Config(tg_bot=TgBot(token=env('BOT_TOKEN')),
-                  db=DatabaseConfig(database=env('DATABASE'),
-                                    db_host=env('DB_HOST'),
-                                    db_user=env('DB_USER'),
-                                    db_password=env('DB_PASSWORD')))
+    return Config(
+        tg_bot=TgBot(token=env("BOT_TOKEN")),
+        db=DatabaseConfig(
+            database=env("DATABASE"),
+            db_host=env("DB_HOST"),
+            db_user=env("DB_USER"),
+            db_password=env("DB_PASSWORD"),
+        ),
+    )
