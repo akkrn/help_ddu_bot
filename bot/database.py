@@ -1,54 +1,115 @@
-import asyncpg
-
 # import aioredis
+from dataclasses import dataclass, field
 from datetime import datetime
 
-from bot.config_data.config import load_config
-
-config = load_config()
-DATABASE_URL = (
-    f"postgresql://{config.db.DB_USER}:{config.db.DB_password}@"
-    f"{config.db.DB_HOST}/{config.db.DATABASE}"
-)
-
-# REDIS_URL = "redis://localhost"
+import asyncpg
+from asyncpg import Pool
+from config_data.config import load_config
 
 
-async def create_pool():
-    return await asyncpg.create_pool(DATABASE_URL)
+@dataclass
+class Database:
+    name: str
+    user: str
+    password: str
+    host: str
+    port: int
+    pool: Pool = field(init=False, default=None)
 
-
-async def get_user(pool, user_id):
-    async with pool.acquire() as connection:
-        return await connection.fetchrow(
-            "SELECT * FROM users WHERE id = $1", user_id
+    async def create_pool(self):
+        self.pool = await asyncpg.create_pool(
+            database=self.name,
+            user=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
         )
 
+    # config = load_config(path=None)
+    # DATABASE_URL = (
+    #     f"postgresql://{config.db.db_user}:{config.db.db_password}@"
+    #     f"{config.db.db_host}:5432/{config.db.database}"
+    # )
 
-async def add_user(pool, user_id, username, first_name, last_name):
-    async with pool.acquire() as connection:
-        await connection.execute(
+    # REDIS_URL = "redis://localhost"
+
+    async def create_tables(self):
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL UNIQUE,
+                    username VARCHAR(255),
+                    first_name VARCHAR(255),
+                    last_name VARCHAR(255),
+                    created_at TIMESTAMP NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS penalties (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    start_date DATE NOT NULL,
+                    end_date DATE NOT NULL,
+                    object_cost INTEGER NOT NULL,
+                    penalty DECIMAL NOT NULL
+                );
             """
-            INSERT INTO users (user_id, username, first_name, last_name, 
-            created_at)
-            VALUES ($1, $2, $3, $4, $5)
-        """,
-            user_id,
-            username,
-            first_name,
-            last_name,
-            datetime.now(),
-        )
+            )
 
+    async def get_user(self, user_id: int) -> asyncpg.Record | None:
+        async with self.pool.acquire() as connection:
+            return await connection.fetchrow(
+                "SELECT * FROM users WHERE user_id = $1", user_id
+            )
 
-async def get_rate_for_date(pool, date):
-    async with pool.acquire() as connection:
-        result = await connection.fetchrow(
-            "SELECT rate FROM keyratecbr WHERE date <= $1 ORDER BY date DESC "
-            "LIMIT 1",
-            date,
-        )
-        return result if result else None
+    async def add_user(
+        self, user_id: int, username: str, first_name: str, last_name: str
+    ) -> None:
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO users (user_id, username, first_name, last_name, 
+                created_at)
+                VALUES ($1, $2, $3, $4, $5)
+            """,
+                user_id,
+                username,
+                first_name,
+                last_name,
+                datetime.now(),
+            )
+
+    async def get_rate_for_date(self, date: datetime) -> float | None:
+        async with self.pool.acquire() as connection:
+            result = await connection.fetchrow(
+                "SELECT rate FROM keyratecbr WHERE date <= $1 ORDER BY date DESC "
+                "LIMIT 1",
+                date,
+            )
+            result = float(result[0])
+            return result if result else None
+
+    async def add_penalty(
+        self,
+        user_id: int,
+        start_date: datetime,
+        end_date: datetime,
+        object_cost: float,
+        penalty: float,
+    ) -> None:
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO penalties (user_id, start_date, end_date, object_cost,
+                penalty)
+                VALUES ($1, $2, $3, $4, $5)
+            """,
+                user_id,
+                start_date,
+                end_date,
+                object_cost,
+                penalty,
+            )
 
 
 # async def create_redis_pool():

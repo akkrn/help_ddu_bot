@@ -1,18 +1,20 @@
 from dataclasses import dataclass
+
 from environs import Env
 
 
 @dataclass
 class DatabaseConfig:
-    DATABASE: str
-    DB_HOST: str
-    DB_USER: str
-    DB_password: str
+    database: str
+    db_host: str
+    db_user: str
+    db_password: str
+    db_port: int
 
 
 @dataclass
 class TgBot:
-    BOT_TOKEN: str
+    token: str
 
 
 @dataclass
@@ -32,5 +34,6 @@ def load_config(path: str | None) -> Config:
             db_host=env("DB_HOST"),
             db_user=env("DB_USER"),
             db_password=env("DB_PASSWORD"),
+            db_port=env.int("DB_PORT"),
         ),
     )

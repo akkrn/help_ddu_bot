@@ -1,80 +1,108 @@
-from aiogram import Router, types
+import time
+
+from aiogram import F, Router
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
-
-from bot import database
-from bot.lexicon.lexicon import LEXICON_RU
+from aiogram.types import CallbackQuery, Message
+from fsm_settings import AskMode, DefectsCalculation, PenaltyCalculation
+from lexicon.lexicon import LEXICON_RU
+from loader import db
+from utils import create_inline_kb
 
 router = Router()
 
 
-@router.message_handler(commands=["start"])
-async def on_start(message: types.Message):
-    user = await database.get_user(message.from_user.id)
-    if not user:
-        await database.add_user(
-            message.from_user.id,
-            message.from_user.username,
-            message.from_user.first_name,
-            message.from_user.last_name,
-        )
-    await show_main_menu(message)
-
-
-async def show_main_menu(message: types.Message):
-    markup = InlineKeyboardMarkup()
-    markup.add(
-        InlineKeyboardButton(
-            LEXICON_RU["penalty_button"], callback_data="penalty_button"
-        )
-    )
-    markup.add(
-        InlineKeyboardButton(
-            LEXICON_RU["defects_button"], callback_data="defects_button"
-        )
-    )
-    markup.add(
-        InlineKeyboardButton(
-            LEXICON_RU["ask_button"], callback_data="ask_button"
-        )
-    )
-    await message.answer("Выберите действие:", reply_markup=markup)
-
-
 @router.message(CommandStart(), StateFilter(default_state))
 async def process_start_command(message: Message):
-    user = await database.get_user(message.from_user.id)
+    user = await db.get_user(message.from_user.id)
     if not user:
-        await database.add_user(
+        await db.add_user(
             message.from_user.id,
             message.from_user.username,
             message.from_user.first_name,
             message.from_user.last_name,
         )
-    await show_main_menu(message)
+    keyboard = create_inline_kb(
+        1,
+        "penalty_button",
+        "defects_button",
+        "ask_button",
+    )
+    await message.answer(text=LEXICON_RU["/start"], reply_markup=keyboard)
 
-    await message.answer(text=LEXICON_RU["/start"])
+
+@router.callback_query(
+    F.data.in_(
+        [
+            "penalty_button",
+            "defects_button",
+            "ask_button",
+        ]
+    )
+)
+async def process_start_callback(callback: CallbackQuery, state: FSMContext):
+    if callback.data == "penalty_button":
+        await callback.message.edit_text(
+            text=LEXICON_RU["penalty_start_date1"]
+        )
+        time.sleep(1)
+        await callback.message.answer(text=LEXICON_RU["penalty_start_date2"])
+        time.sleep(2)
+        await callback.message.answer(text=LEXICON_RU["penalty_start_date3"])
+        await state.set_state(PenaltyCalculation.start_date)
+    elif callback.data == "defects_button":
+        await callback.message.edit_text(text=LEXICON_RU["defects_text"])
+        await state.set_state(DefectsCalculation.start)
+    elif callback.data == "ask_button":
+        await callback.message.edit_text(text=LEXICON_RU["ask_text"])
+        await state.set_state(AskMode.start)
 
 
 @router.message(Command(commands="cancel"), StateFilter(default_state))
 async def process_cancel_command(message: Message):
-    await message.answer(text=LEXICON_RU["/cancel_in_default_state"])
+    keyboard = create_inline_kb(
+        1,
+        LEXICON_RU["penalty_button"],
+        LEXICON_RU["defects_button"],
+        LEXICON_RU["ask_button"],
+    )
+    bot_message = await message.answer(
+        text=LEXICON_RU["/cancel_in_default_state"], reply_markup=keyboard
+    )
+    time.sleep(4)
+    await message.delete()
+    await bot_message.delete()
 
 
 @router.message(Command(commands="cancel"), ~StateFilter(default_state))
 async def process_cancel_command_state(message: Message, state: FSMContext):
-    await message.answer(text=LEXICON_RU["/cancel"])
+    keyboard = create_inline_kb(
+        1,
+        LEXICON_RU["penalty_button"],
+        LEXICON_RU["defects_button"],
+        LEXICON_RU["ask_button"],
+    )
+    bot_message = await message.answer(
+        text=LEXICON_RU["/cancel"], reply_markup=keyboard
+    )
     await state.clear()
-
-
-@router.message(Command(commands="menu"), StateFilter(default_state))
-async def process_menu_command(message: Message):
-    await show
-    await message.answer(text=LEXICON_RU["/menu"])
+    time.sleep(4)
+    await message.delete()
+    await bot_message.delete()
 
 
 @router.message(Command(commands="help"), StateFilter(default_state))
 async def process_help_command(message: Message):
-    await message.answer(text=LEXICON_RU["/help"])
+    await message.edit_text(text=LEXICON_RU["/help"])
+
+
+@router.message(StateFilter(default_state))
+async def send_echo(message: Message):
+    bot_message = await message.answer(
+        text=f"{LEXICON_RU['message_warning']}\n"
+        f"{LEXICON_RU['cancel_call']}"
+    )
+    time.sleep(4)
+    await message.delete()
+    await bot_message.delete()

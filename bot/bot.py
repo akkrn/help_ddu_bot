@@ -1,10 +1,8 @@
 import asyncio
 import logging
 
-from aiogram import Bot, Dispatcher
-from bot.config_data.config import Config, load_config
-from bot.fsm import storage
-from bot.handlers import user_handlers, fsm_handlers, other_handlers
+from handlers import other_handlers, penalty_handlers
+from loader import bot, db, dp
 
 logger = logging.getLogger(__name__)
 
@@ -17,13 +15,12 @@ async def main():
     )
 
     logger.info("Starting bot")
-    config = load_config()
-    bot = Bot(token=config.tg_bot.BOT_TOKEN, parse_mode="HTML")
-    dp = Dispatcher(storage=storage)
+    await db.create_pool()
+    await db.create_tables()
+    logger.info("Database is created")
 
-    dp.include_router(user_handlers.router)
     dp.include_router(other_handlers.router)
-    dp.include_router(fsm_handlers.router)
+    dp.include_router(penalty_handlers.router)
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
