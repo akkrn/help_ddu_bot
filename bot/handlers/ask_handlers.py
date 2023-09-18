@@ -49,7 +49,7 @@ async def ask_openai_v2(question: str) -> str:
 async def process_ask_mode(message: Message, state: FSMContext):
     question = message.text
     bot_message = await message.answer(
-        text="Подождите, пожалуйста, " "мне надо подумать..."
+        text=LEXICON_RU["ask_wait"], disable_notification=True
     )
     answer = await ask_openai_v2(question)
     await bot_message.delete()
