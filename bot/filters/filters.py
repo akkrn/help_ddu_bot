@@ -14,8 +14,8 @@ class IsValidDateFilter(BaseFilter):
     async def __call__(self, message: Message) -> bool:
         try:
             date = datetime.strptime(message.text, "%d.%m.%Y")
-            if datetime.now() >= date >= datetime(2000, 1, 1):
+            if datetime.now() >= date >= datetime(2006, 10, 23):
                 return True
-            raise ValueError
+            return False
         except ValueError:
             return False

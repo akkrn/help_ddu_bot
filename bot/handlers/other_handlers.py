@@ -6,11 +6,31 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import CallbackQuery, Message
 from fsm_settings import AskMode, DefectsCalculation, PenaltyCalculation
-from lexicon.lexicon import LEXICON_RU
+from lexicon.lexicon import CITIES_RU, LEXICON_RU
 from loader import db
 from utils import create_inline_kb
 
 router = Router()
+
+SLEEP_TIME_ANSWER = 2
+SLEEP_TIME_WARNING = 4
+
+
+async def delete_warning(message: Message, text: str):
+    bot_message = await message.answer(text=text)
+    time.sleep(SLEEP_TIME_WARNING)
+    await message.delete()
+    await bot_message.delete()
+
+
+async def main_menu(message: Message, text: str):
+    keyboard = create_inline_kb(
+        1,
+        "penalty_button",
+        "defects_button",
+        "ask_button",
+    )
+    await message.answer(text=text, reply_markup=keyboard)
 
 
 @router.message(CommandStart(), StateFilter(default_state))
@@ -23,13 +43,7 @@ async def process_start_command(message: Message):
             message.from_user.first_name,
             message.from_user.last_name,
         )
-    keyboard = create_inline_kb(
-        1,
-        "penalty_button",
-        "defects_button",
-        "ask_button",
-    )
-    await message.answer(text=LEXICON_RU["/start"], reply_markup=keyboard)
+    await main_menu(message, LEXICON_RU["/start"])
 
 
 @router.callback_query(
@@ -46,13 +60,23 @@ async def process_start_callback(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text(
             text=LEXICON_RU["penalty_start_date1"]
         )
-        time.sleep(1)
+        time.sleep(SLEEP_TIME_ANSWER)
         await callback.message.answer(text=LEXICON_RU["penalty_start_date2"])
-        time.sleep(2)
+        time.sleep(SLEEP_TIME_ANSWER)
         await callback.message.answer(text=LEXICON_RU["penalty_start_date3"])
         await state.set_state(PenaltyCalculation.start_date)
     elif callback.data == "defects_button":
-        await callback.message.edit_text(text=LEXICON_RU["defects_text"])
+        await callback.message.edit_text(text=LEXICON_RU["defects_text1"])
+        time.sleep(SLEEP_TIME_ANSWER)
+        await callback.message.answer(text=LEXICON_RU["defects_text2"])
+        time.sleep(SLEEP_TIME_ANSWER)
+        keyboard = create_inline_kb(
+            2,
+            *CITIES_RU,
+        )
+        await callback.message.answer(
+            text=LEXICON_RU["defects_text3"], reply_markup=keyboard
+        )
         await state.set_state(DefectsCalculation.start)
     elif callback.data == "ask_button":
         await callback.message.edit_text(text=LEXICON_RU["ask_text"])
@@ -61,35 +85,15 @@ async def process_start_callback(callback: CallbackQuery, state: FSMContext):
 
 @router.message(Command(commands="cancel"), StateFilter(default_state))
 async def process_cancel_command(message: Message):
-    keyboard = create_inline_kb(
-        1,
-        LEXICON_RU["penalty_button"],
-        LEXICON_RU["defects_button"],
-        LEXICON_RU["ask_button"],
-    )
-    bot_message = await message.answer(
-        text=LEXICON_RU["/cancel_in_default_state"], reply_markup=keyboard
-    )
-    time.sleep(4)
+    await main_menu(message, LEXICON_RU["/cancel_in_default_state"])
     await message.delete()
-    await bot_message.delete()
 
 
 @router.message(Command(commands="cancel"), ~StateFilter(default_state))
 async def process_cancel_command_state(message: Message, state: FSMContext):
-    keyboard = create_inline_kb(
-        1,
-        LEXICON_RU["penalty_button"],
-        LEXICON_RU["defects_button"],
-        LEXICON_RU["ask_button"],
-    )
-    bot_message = await message.answer(
-        text=LEXICON_RU["/cancel"], reply_markup=keyboard
-    )
-    await state.clear()
-    time.sleep(4)
+    await main_menu(message, LEXICON_RU["/cancel"])
     await message.delete()
-    await bot_message.delete()
+    await state.clear()
 
 
 @router.message(Command(commands="help"), StateFilter(default_state))
@@ -103,6 +107,6 @@ async def send_echo(message: Message):
         text=f"{LEXICON_RU['message_warning']}\n"
         f"{LEXICON_RU['cancel_call']}"
     )
-    time.sleep(4)
+    time.sleep(SLEEP_TIME_WARNING)
     await message.delete()
     await bot_message.delete()

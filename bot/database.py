@@ -50,9 +50,22 @@ class Database:
                     user_id INTEGER NOT NULL,
                     start_date DATE NOT NULL,
                     end_date DATE NOT NULL,
-                    object_cost INTEGER NOT NULL,
-                    penalty DECIMAL NOT NULL
+                    object_cost NUMERIC (12, 3) NOT NULL,
+                    penalty NUMERIC (12, 3) NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS defects (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    city VARCHAR(25) NOT NULL,
+                    object_name VARCHAR(50) NOT NULL,
+                    object_square NUMERIC (6, 2) NOT NULL,
+                    compensation NUMERIC (12, 3) NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS questions (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    question TEXT NOT NULL,
+                    answer TEXT NOT NULL
             """
             )
 
@@ -109,6 +122,45 @@ class Database:
                 end_date,
                 object_cost,
                 penalty,
+            )
+
+    async def add_defects(
+        self,
+        user_id: int,
+        city: str,
+        object_name: str,
+        object_square: float,
+        compensation: float,
+    ) -> None:
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO defects (user_id, city, object_name, 
+                object_square, compensation)
+                VALUES ($1, $2, $3, $4, $5)
+            """,
+                user_id,
+                city,
+                object_name,
+                object_square,
+                compensation,
+            )
+
+    async def add_question(
+        self,
+        user_id: int,
+        question: str,
+        answer: str,
+    ) -> None:
+        async with self.pool.acquire() as connection:
+            await connection.execute(
+                """
+                INSERT INTO questions (user_id, question, answer)
+                VALUES ($1, $2, $3)
+            """,
+                user_id,
+                question,
+                answer,
             )
 
 

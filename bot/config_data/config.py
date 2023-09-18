@@ -4,6 +4,12 @@ from environs import Env
 
 
 @dataclass
+class OpenAIConfig:
+    api_key: str
+    url: str
+
+
+@dataclass
 class DatabaseConfig:
     database: str
     db_host: str
@@ -35,5 +41,8 @@ def load_config(path: str | None) -> Config:
             db_user=env("DB_USER"),
             db_password=env("DB_PASSWORD"),
             db_port=env.int("DB_PORT"),
+        ),
+        openai=OpenAIConfig(
+            api_key=env("OPENAI_API_KEY"), url=env("OPENAI_API_URL")
         ),
     )

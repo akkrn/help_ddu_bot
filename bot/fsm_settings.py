@@ -15,6 +15,11 @@ class PenaltyCalculation(StatesGroup):
 
 class DefectsCalculation(StatesGroup):
     start = State()
+    input_city = State()
+    object_name = State()
+    object_square = State()
+    confirm_details = State()
+    change_details = State()
 
 
 class AskMode(StatesGroup):

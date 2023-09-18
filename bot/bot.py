@@ -1,10 +1,17 @@
 import asyncio
 import logging
 
-from handlers import other_handlers, penalty_handlers
+from aiogram import Dispatcher
+from handlers import defects_handlers, other_handlers, penalty_handlers
 from loader import bot, db, dp
 
 logger = logging.getLogger(__name__)
+
+
+async def shutdown(dispatcher: Dispatcher):
+    await dispatcher.storage.close()
+    logger.info("Storage closed")
+    await dispatcher.storage.wait_closed()
 
 
 async def main():
@@ -21,9 +28,10 @@ async def main():
 
     dp.include_router(other_handlers.router)
     dp.include_router(penalty_handlers.router)
+    dp.include_router(defects_handlers.router)
 
     await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    await dp.start_polling(bot, on_shutdown=shutdown)
 
 
 if __name__ == "__main__":
