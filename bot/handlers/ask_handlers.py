@@ -13,27 +13,6 @@ from loader import db, dp
 router = Router()
 config = load_config(path=None)
 
-#
-# async def ask_openai(question: str, message: Message):
-#     headers = {
-#         "Authorization": f"Bearer {config.openai.api_key}",
-#         "Content-Type": "application/json",
-#     }
-#
-#     payload = {
-#         "prompt": question,
-#         "max_tokens": 150
-#     }
-#
-#     async with aiohttp.ClientSession() as session:
-#         async with session.post(config.openai.url, headers=headers,
-#                                 json=payload) as response:
-#             if response.status == 200:
-#                 data = await response.json()
-#                 return data['choices'][0]['text'].strip()
-#             else:
-#                 await message.answer(text="Ошибка OpenAI API")
-#                 raise Exception(f"OpenAI API Error: {response.status} - {await response.text()}")
 
 openai_prompt = (
     "Представь, что ты эксперт по долевому строительству в "
@@ -44,7 +23,7 @@ openai_prompt = (
     "строительством, включая права и обязанности сторон, "
     "исполнение договорных условий, оспаривание действий "
     "застройщиков и взыскание неустойки. Твой ответ должен быть "
-    "коротким и содержательным, не более 100 слов, "
+    "емким и содержательным, не более 50 слов, "
     "в официально-деловом стиле. Если у тебя "
     "возникнут вопросы, я задам их дополнительно. Даже если в "
     "конце моего предложения не будет знака вопроса, не надо "
@@ -54,7 +33,7 @@ openai_prompt = (
 
 async def ask_openai_v2(question: str) -> str:
     chat_response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model="gpt-3.5-turbo-0613",
         messages=[
             {"role": "system", "content": openai_prompt},
             {"role": "user", "content": question},
@@ -64,19 +43,16 @@ async def ask_openai_v2(question: str) -> str:
     return answer
 
 
-@router.message(StateFilter(AskMode.start), F.text, F.voice)
+@router.message(
+    StateFilter(AskMode.start), F.content_type.in_({"text", "voice"})
+)
 async def process_ask_mode(message: Message, state: FSMContext):
     question = message.text
-    if message.content_type == "voice":
-        await message.answer(text="Это голосовое сообщение")
-        file_path = await dp.get_file_path(message.voice.file_id)
-        file_url = (
-            "https://api.telegram.org/file/bot{config.tg_bot.token}"
-            f"/{file_path}"
-        )
-        transcription_response = openai.Whisper.transcribe(file_url)
-        question = transcription_response.get("transcription", "")
+    bot_message = await message.answer(
+        text="Подождите, пожалуйста, " "мне надо подумать..."
+    )
     answer = await ask_openai_v2(question)
+    await bot_message.delete()
     await message.answer(text=answer)
     await db.add_question(
         user_id=message.from_user.id, question=question, answer=answer
@@ -87,4 +63,4 @@ async def process_ask_mode(message: Message, state: FSMContext):
     StateFilter(AskMode.start),
 )
 async def process_ask_mode_warning(message: Message, state: FSMContext):
-    await delete_warning(message, LEXICON_RU["ask_mode_warning"])
+    await delete_warning(message, LEXICON_RU["ask_text_warning"])

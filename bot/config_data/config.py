@@ -27,6 +27,7 @@ class TgBot:
 class Config:
     tg_bot: TgBot
     db: DatabaseConfig
+    openai: OpenAIConfig
 
 
 def load_config(path: str | None) -> Config:

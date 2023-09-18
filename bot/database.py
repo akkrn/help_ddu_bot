@@ -66,6 +66,7 @@ class Database:
                     user_id INTEGER NOT NULL,
                     question TEXT NOT NULL,
                     answer TEXT NOT NULL
+                );
             """
             )
 
