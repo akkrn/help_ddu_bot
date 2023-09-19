@@ -11,10 +11,10 @@ class OpenAIConfig:
 
 @dataclass
 class DatabaseConfig:
-    database: str
+    postgres_db: str
     db_host: str
-    db_user: str
-    db_password: str
+    postgres_user: str
+    postgres_password: str
     db_port: int
 
 
@@ -37,10 +37,10 @@ def load_config(path: str | None) -> Config:
     return Config(
         tg_bot=TgBot(token=env("BOT_TOKEN")),
         db=DatabaseConfig(
-            database=env("DATABASE"),
+            postgres_db=env("POSTGRES_DB"),
             db_host=env("DB_HOST"),
-            db_user=env("DB_USER"),
-            db_password=env("DB_PASSWORD"),
+            postgres_user=env("POSTGRES_USER"),
+            postgres_password=env("POSTGRES_PASSWORD"),
             db_port=env.int("DB_PORT"),
         ),
         openai=OpenAIConfig(
