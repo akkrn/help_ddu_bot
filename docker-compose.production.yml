@@ -9,7 +9,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
   backend:
-    image: ${DOCKER_USERNAME}/help_ddu_bot_backend
+    image: ${DOCKER_USERNAME}/help_ddu_bot_backend:latest
     env_file: .env
     depends_on:
       - db
