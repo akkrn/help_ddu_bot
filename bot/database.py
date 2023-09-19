@@ -37,6 +37,11 @@ class Database:
         async with self.pool.acquire() as connection:
             await connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS keyratecbr (
+                    id SERIAL PRIMARY KEY,
+                    date DATE NOT NULL,
+                    rate REAL NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS users (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER NOT NULL UNIQUE,
