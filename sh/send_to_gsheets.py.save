@@ -1,0 +1,21 @@
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+# Set up the Google Sheets API credentials
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = ServiceAccountCredentials.from_json_keyfile_name("your_google_credentials.json", scope)
+client = gspread.authorize(creds)
+
+# Open the Google Sheet
+sheet = client.open("Your Google Sheet Name").sheet1
+
+# List of tables you exported
+tables = ["table1", "table2", "table3"]
+
+for table in tables:
+    with open(f"/path/to/exported/{table}.csv", "r") as file:
+        csv_contents = file.read()
+        # Clear the sheet and update with new data
+        sheet.clear()
+        sheet.append_rows(csv_contents)
+

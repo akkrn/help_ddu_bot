@@ -25,14 +25,6 @@ class Database:
             port=self.port,
         )
 
-    # config = load_config(path=None)
-    # DATABASE_URL = (
-    #     f"postgresql://{config.db.db_user}:{config.db.db_password}@"
-    #     f"{config.db.db_host}:5432/{config.db.database}"
-    # )
-
-    # REDIS_URL = "redis://localhost"
-
     async def create_tables(self):
         async with self.pool.acquire() as connection:
             await connection.execute(
@@ -171,4 +163,4 @@ class Database:
 
 
 # async def create_redis_pool():
-#     return await aioredis.create_redis_pool(REDIS_URL)
+#     return await aioredis.from_url("redis://localhost:6379", db=5)
